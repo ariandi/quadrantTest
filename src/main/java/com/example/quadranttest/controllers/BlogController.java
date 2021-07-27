@@ -1,78 +1,139 @@
 package com.example.quadranttest.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.quadranttest.config.JwtTokenUtil;
+import com.example.quadranttest.models.Blogs;
+import com.example.quadranttest.models.GeneralResponse;
+import com.example.quadranttest.services.BlogsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.error.ErrorController;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @RestController
 public class BlogController implements ErrorController {
 
     private static final String ERROR_PATH = "/error";
 
-    @GetMapping("/hello")
-    public ResponseEntity<String> HelloWorld() throws JsonProcessingException {
+    @Autowired
+    BlogsService blogsService;
 
-        Map<String, Object> mapper = new HashMap<String, Object>();
-        mapper.put("result", "hello world");
+    @Autowired
+    GeneralResponse generalResponse;
 
-        ObjectMapper objMapper = new ObjectMapper();
-        String response = objMapper.writeValueAsString(mapper);
+    @Autowired
+    JwtTokenUtil jwtTokenUtil;
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", "application/json");
+    @GetMapping("/blogs")
+    public List<Blogs> findAll() {
+        return blogsService.getAll();
+    }
 
-        return new ResponseEntity<>(
-                response, headers, HttpStatus.OK);
+    @GetMapping("/blogs/{id}")
+    public Blogs findById(@PathVariable int id) {
+        return blogsService.getById(id);
+    }
+
+    @GetMapping("/blogs/title/{title}")
+    public Blogs findByTitle(@PathVariable String title) {
+        return blogsService.getByTitle(title);
+    }
+
+    @PostMapping("/blogs")
+    public GeneralResponse add(@RequestBody Blogs blog) {
+        if (!validateAddBlog(blog)) {
+            return generalResponse;
+        }
+
+        HashMap<String, Object> mapUser = new HashMap<>();
+        try {
+            Blogs res = blogsService.save(blog);
+            mapUser.put("blog", res);
+            generalResponse.setResultMsg("Success");
+            generalResponse.setResultCd(200);
+            generalResponse.setData(mapUser);
+
+            return generalResponse;
+        } catch (Exception e) {
+            e.getMessage();
+            generalResponse.setResultMsg(e.getMessage());
+            generalResponse.setResultCd(403);
+        }
+        return generalResponse;
+    }
+
+    @PutMapping("/blog")
+    public GeneralResponse update(@RequestBody Blogs blog) {
+        HashMap<String, Object> mapUser = new HashMap<>();
+        String token = "";
+
+        try {
+            String username = jwtTokenUtil.getUsernameFromToken(token);
+
+            blog.setUpdatedBy(username);
+
+            Blogs res = blogsService.update(blog);
+            mapUser.put("blog", res);
+            generalResponse.setResultMsg("Success");
+            generalResponse.setResultCd(200);
+            generalResponse.setData(mapUser);
+
+            return generalResponse;
+        } catch (Exception e) {
+            e.getMessage();
+            generalResponse.setResultMsg(e.getMessage());
+            generalResponse.setResultCd(403);
+        }
+        return generalResponse;
+    }
+
+    private boolean validateAddBlog(Blogs blogs) {
+        boolean valid = true;
+        generalResponse.setData(null);
+
+        if (blogs.getTitle() == null || blogs.getTitle().equals("")) {
+            generalResponse.setResultCd(403);
+            generalResponse.setResultMsg("blog title field is mandatory");
+            valid = false;
+        }
+
+        if (blogs.getContent() == null || blogs.getContent().equals("")) {
+            generalResponse.setResultCd(403);
+            generalResponse.setResultMsg("blog content field is mandatory");
+            valid = false;
+        }
+
+        return valid;
     }
 
     @RequestMapping(ERROR_PATH)
-    public HashMap<String, Object> handleError(HttpServletRequest request) {
+    public GeneralResponse handleError(HttpServletRequest request) {
         Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
         Object errorMsg = request.getAttribute(RequestDispatcher.ERROR_MESSAGE);
-        HashMap<String, Object> result = responseWs(999, "General Error");
+        GeneralResponse result = new GeneralResponse();
+        result.setResultCd(999);
+        result.setResultMsg("General Error");
 
         if (status != null) {
             int statusCode = Integer.parseInt(status.toString());
             if(statusCode == HttpStatus.UNAUTHORIZED.value()) {
-                result = responseWs(HttpStatus.UNAUTHORIZED.value(), errorMsg.toString());
+                result.setResultCd(HttpStatus.UNAUTHORIZED.value());
             }
             else if(statusCode == HttpStatus.NOT_FOUND.value()) {
-                result = responseWs(HttpStatus.NOT_FOUND.value(), errorMsg.toString());
+                result.setResultCd(HttpStatus.NOT_FOUND.value());
             }
             else if(statusCode == HttpStatus.INTERNAL_SERVER_ERROR.value()) {
-                result = responseWs(HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMsg.toString());
+                result.setResultCd(HttpStatus.INTERNAL_SERVER_ERROR.value());
             }
+
+            result.setResultMsg(errorMsg.toString());
 
             return result;
         }
-
-        return result;
-    }
-
-    public HashMap<String, Object> responseWs (int rsCd, String rsMsg) {
-        HashMap<String, Object> result = new HashMap<>();
-        result.put("resultCd", rsCd);
-        result.put("resultMessage", rsMsg);
-
-        return result;
-    }
-
-    public HashMap<String, Object> responseWs (String rsCd, String rsMsg, HashMap<String, Object> data) {
-        HashMap<String, Object> result = new HashMap<>();
-        result.put("resultCd", rsCd);
-        result.put("resultMessage", rsMsg);
-        result.put("data", data);
 
         return result;
     }

@@ -1,22 +1,19 @@
 package com.example.quadranttest.controllers;
 
+import com.example.quadranttest.models.Users;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCrypt;
-
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
-import java.util.Base64;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BlogControllerTest {
+
+    Users users = new Users();
+
     @Test
     public void hashingPassword() throws NoSuchAlgorithmException {
-        String password = BCrypt.hashpw("password", BCrypt.gensalt(12));
+        String pwd = "password";
+        String password = BCrypt.hashpw(pwd, BCrypt.gensalt(12));
 
         System.out.println(password);
     }

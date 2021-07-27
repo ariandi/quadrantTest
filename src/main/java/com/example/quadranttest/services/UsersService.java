@@ -3,8 +3,12 @@ package com.example.quadranttest.services;
 import com.example.quadranttest.models.Users;
 import com.example.quadranttest.repositories.UsersRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -13,7 +17,23 @@ public class UsersService {
     @Autowired
     private UsersRepository usersRepository;
 
-    public Users saveUsers(Users users) {
+    public Users saveUsers(Users users) throws NoSuchAlgorithmException {
+        if (users.getCreatedAt() == null) {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime now = LocalDateTime.now();
+
+            users.setCreatedAt(dtf.format(now));
+        }
+
+        if (users.getCreatedBy() == null) {
+            users.setCreatedBy(users.getUsername());
+        }
+
+        if (users.getPassword() != null) {
+            String password = hashingPassword(users.getPassword());
+            users.setPassword(password);
+        }
+
         return usersRepository.save(users);
     }
 
@@ -47,11 +67,15 @@ public class UsersService {
         assert existingUser != null;
         existingUser.setUsername(users.getUsername());
         existingUser.setEmail(users.getEmail());
-        existingUser.setFull_name(users.getFull_name());
+        existingUser.setFullName(users.getFullName());
         existingUser.setPassword(users.getPassword());
-        existingUser.setUpdated_at(users.getUpdated_at());
-        existingUser.setUpdated_by(users.getUpdated_by());
+        existingUser.setUpdatedAt(users.getUpdatedAt());
+        existingUser.setUpdatedBy(users.getUpdatedBy());
         return usersRepository.save(existingUser);
+    }
+
+    public String hashingPassword(String pwd) throws NoSuchAlgorithmException {
+        return BCrypt.hashpw(pwd, BCrypt.gensalt(12));
     }
 
 }

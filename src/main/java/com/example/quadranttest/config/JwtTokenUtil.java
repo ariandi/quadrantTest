@@ -1,5 +1,6 @@
 package com.example.quadranttest.config;
 
+import com.example.quadranttest.models.Users;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

@@ -5,8 +5,12 @@ import java.util.HashMap;
 import com.example.quadranttest.config.JwtTokenUtil;
 import com.example.quadranttest.models.JwtRequest;
 import com.example.quadranttest.models.JwtResponse;
+import com.example.quadranttest.models.Users;
+import com.example.quadranttest.repositories.UsersRepository;
 import com.example.quadranttest.services.JwtUserDetailsService;
 import net.minidev.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,6 +18,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @CrossOrigin
 public class JwtAuthenticationController {
+
+    Logger logger = LoggerFactory.getLogger(JwtAuthenticationController.class);
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -37,12 +44,17 @@ public class JwtAuthenticationController {
     public ResponseEntity<?> createAuthenticationToken
             (@RequestBody JwtRequest authenticationRequest) {
 
+        logger.info("Start Authentication.");
+        logger.info("Username : {}", authenticationRequest.getUsername());
+        logger.info("password : {}", authenticationRequest.getPassword());
+
         String token = "";
         try {
             authenticate(authenticationRequest.getUsername(), authenticationRequest.getPassword());
 
             final UserDetails userDetails = userDetailsService
                     .loadUserByUsername(authenticationRequest.getUsername());
+
             token = jwtTokenUtil.generateToken(userDetails);
 
         } catch (Exception e) {
@@ -55,7 +67,6 @@ public class JwtAuthenticationController {
                 return ResponseEntity.ok(jsonObject);
             }
         }
-
 
         return ResponseEntity.ok(new JwtResponse(token));
     }

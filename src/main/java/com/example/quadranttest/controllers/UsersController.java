@@ -15,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 
+@CrossOrigin (origins = "*" , exposedHeaders = "**")
 @RestController
 public class UsersController {
 
